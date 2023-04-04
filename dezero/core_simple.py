@@ -3,6 +3,12 @@ import numpy as np
 
 class Variable:
     def __init__(self, data):
+
+        # np.ndarrayだけ扱う
+        if data is not None:
+            if not isinstance(data, np.ndarray):
+                raise TypeError(f'{type(data)} is not supported')
+
         self.data = data
         self.grad = None
         self.creator = None
@@ -11,6 +17,10 @@ class Variable:
         self.creator = func
 
     def backward(self):
+
+        # 逆伝播の最初の変数に勾配を設定
+        if self.grad is None:
+            self.grad = np.ones_like(self.data)
 
         # recursion
         # f = self.creator # 1. 関数を取得
@@ -29,11 +39,18 @@ class Variable:
                 funcs.append(x.creator) # 4. 1つ前の関数をリストに追加
 
 
+# ndarrayインスタンスに変換
+def as_array(x):
+    if np.isscalar(x):
+        return np.array(x)
+    return x
+
+
 class Function:
     def __call__(self, input):
         x = input.data # データを取り出す
         y = self.forward(x) # 実際の計算
-        output = Variable(y)
+        output = Variable(as_array(y))
         output.set_creator(self) # 出力変数に生みの親を覚えさせる
         self.input = input # 入力された変数を覚える
         self.output = output # 出力も覚える
