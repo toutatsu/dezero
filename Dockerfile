@@ -9,4 +9,4 @@ RUN pip install --upgrade pip
 
 # requirements
 COPY requirements.txt /root
-RUN pip install -r requirements.txt
+RUN pip install -r /root/requirements.txt
