@@ -1,0 +1,38 @@
+
+services:
+
+    dezero:
+        image: dezero_image:latest
+        # image: pytorch_image:latest
+
+        build:
+            context: .
+            dockerfile: Dockerfile
+            
+        container_name: dezero_container
+        hostname: dezero_container_host
+
+        working_dir: '/root/workspace/'
+
+        # shm_size: '1gb'
+
+        stdin_open: true
+        tty: true
+
+        # expose:
+        #     - 10000
+        ports:
+            -   "10000:10000"
+
+        volumes:
+            -   type: bind
+                source: .
+                target: /root/workspace/
+
+        # deploy:
+        #     resources:
+        #         reservations:
+        #             devices:
+        #             -   driver: nvidia
+        #                 device_ids: ['0','1']
+        #                 capabilities: [gpu]
