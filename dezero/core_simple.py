@@ -36,10 +36,25 @@ class Variable:
         funcs = [self.creator]
         while funcs:
             f = funcs.pop() # 1. 関数を取得
-            x, y = f.input, f.output # 2. 関数の入出力を取得
-            x.grad = f.backward(y.grad) # 3. 関数のbackwardメソッドを呼ぶ
-            if x.creator is not None:
-                funcs.append(x.creator) # 4. 1つ前の関数をリストに追加
+
+            # 1変数関数の逆伝播
+            # x, y = f.input, f.output # 2. 関数の入出力を取得
+            # x.grad = f.backward(y.grad) # 3. 関数のbackwardメソッドを呼ぶ
+
+            # if x.creator is not None:
+            #     funcs.append(x.creator) # 4. 1つ前の関数をリストに追加
+
+            # 多変数関数の逆伝播
+            gys = [output.grad for output in f.outputs] # 2. 関数の出力の勾配を取得
+            gxs = f.backward(*gys) # 3. 関数のbackwardメソッドを呼ぶ
+            if not isinstance(gxs, tuple): # タプルではない場合の追加対応
+                gxs = (gxs,)
+
+            for x, gx in zip(f.inputs, gxs): # 4. 関数の入力の勾配を設定
+                x.grad = gx
+
+                if x.creator is not None: # 5. 前の関数をリストに追加
+                    funcs.append(x.creator)
 
 
 # Variableインスタンスに変換
@@ -87,6 +102,9 @@ class Add(Function):
     def forward(self, x0, x1):
         y = x0 + x1
         return y
+    
+    def backward(self, gy):
+        return gy, gy
 
 def add(x0, x1):
     return Add()(x0, x1)
