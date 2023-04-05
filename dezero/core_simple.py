@@ -39,6 +39,13 @@ class Variable:
                 funcs.append(x.creator) # 4. 1つ前の関数をリストに追加
 
 
+# Variableインスタンスに変換
+def as_variable(obj):
+    if isinstance(obj, Variable):
+        return obj
+    return Variable(obj)
+
+
 # ndarrayインスタンスに変換
 def as_array(x):
     if np.isscalar(x):
