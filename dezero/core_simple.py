@@ -15,9 +15,11 @@ class Variable:
         self.data = data
         self.grad = None
         self.creator = None
+        self.generation = 0
 
     def set_creator(self, func):
         self.creator = func
+        self.generation = func.generation + 1
     
     def clear_grad(self):
         self.grad = None
@@ -35,8 +37,20 @@ class Variable:
         #     x.grad = f.backward(self.grad) # 3. 関数のbackwardメソッドを呼ぶ
         #     x.backward() # 4. 自分より1つ前の変数のbackwardメソッドを呼ぶ (再帰)
 
-        # list
-        funcs = [self.creator]
+        # 関数リスト
+        funcs = []
+        # funcsに同じ関数が追加されるのを防ぐ
+        seen_set = set()
+
+        # 関数fをfuncsに追加してgeneration順に並べる
+        def add_func(f):
+            if f not in seen_set:
+                funcs.append(f)
+                seen_set.add(f)
+                funcs.sort(key=lambda x: x.generation)
+
+        add_func(self.creator)
+
         while funcs:
             f = funcs.pop() # 1. 関数を取得
 
@@ -60,7 +74,7 @@ class Variable:
                     x.grad = x.grad + gx
 
                 if x.creator is not None: # 5. 前の関数をリストに追加
-                    funcs.append(x.creator)
+                    add_func(x.creator)
 
 
 # Variableインスタンスに変換
@@ -85,6 +99,7 @@ class Function:
             ys = (ys,)
         outputs = [Variable(as_array(y)) for y in ys]
 
+        self.generation = max([x.generation for x in inputs]) # 引数の中で最大の世代を自身に世代に設定
         for output in outputs:
             output.set_creator(self) # 出力変数に生みの親を覚えさせる
         self.inputs = inputs # 入力された変数を覚える
