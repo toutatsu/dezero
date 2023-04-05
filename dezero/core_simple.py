@@ -18,6 +18,9 @@ class Variable:
 
     def set_creator(self, func):
         self.creator = func
+    
+    def clear_grad(self):
+        self.grad = None
 
     def backward(self):
 
@@ -51,7 +54,10 @@ class Variable:
                 gxs = (gxs,)
 
             for x, gx in zip(f.inputs, gxs): # 4. 関数の入力の勾配を設定
-                x.grad = gx
+                if x.grad is None:
+                    x.grad = gx
+                else:
+                    x.grad = x.grad + gx
 
                 if x.creator is not None: # 5. 前の関数をリストに追加
                     funcs.append(x.creator)
