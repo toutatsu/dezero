@@ -1,13 +1,9 @@
 import numpy as np
 
 
-# =============================================================================
-# Variable / Function
-# =============================================================================
 class Variable:
     def __init__(self, data):
 
-        # np.ndarrayだけ扱う
         if data is not None:
             if not isinstance(data, np.ndarray):
                 raise TypeError(f'{type(data)} is not supported')
@@ -21,35 +17,18 @@ class Variable:
 
     def backward(self):
 
-        # 逆伝播の最初の変数に勾配を設定
         if self.grad is None:
             self.grad = np.ones_like(self.data)
 
-        # recursion
-        # f = self.creator # 1. 関数を取得
-        # if f is not None:
-        #     x = f.input # 2. 関数の入力を取得
-        #     x.grad = f.backward(self.grad) # 3. 関数のbackwardメソッドを呼ぶ
-        #     x.backward() # 4. 自分より1つ前の変数のbackwardメソッドを呼ぶ (再帰)
-
-        # list
         funcs = [self.creator]
         while funcs:
-            f = funcs.pop() # 1. 関数を取得
-            x, y = f.input, f.output # 2. 関数の入出力を取得
-            x.grad = f.backward(y.grad) # 3. 関数のbackwardメソッドを呼ぶ
+            f = funcs.pop()
+            x, y = f.input, f.output
+            x.grad = f.backward(y.grad)
             if x.creator is not None:
-                funcs.append(x.creator) # 4. 1つ前の関数をリストに追加
+                funcs.append(x.creator)
 
 
-# Variableインスタンスに変換
-def as_variable(obj):
-    if isinstance(obj, Variable):
-        return obj
-    return Variable(obj)
-
-
-# ndarrayインスタンスに変換
 def as_array(x):
     if np.isscalar(x):
         return np.array(x)
@@ -73,12 +52,7 @@ class Function:
 
     def backward(self, gy):
         raise NotImplementedError()
-
-
-
-# =============================================================================
-# 四則演算 / 演算子のオーバーロード
-# =============================================================================
+    
 
 class Add(Function):
     
@@ -86,3 +60,10 @@ class Add(Function):
         x0, x1 = xs
         y = x0 + x1
         return (y,)
+    
+
+xs = [Variable(np.array(2)), Variable(np.array(3))] # リストとして準備
+f = Add()
+ys = f(xs)
+y = ys[0]
+print(y.data)
