@@ -1,3 +1,4 @@
+import weakref
 import numpy as np
 
 
@@ -62,7 +63,7 @@ class Variable:
             #     funcs.append(x.creator) # 4. 1つ前の関数をリストに追加
 
             # 多変数関数の逆伝播
-            gys = [output.grad for output in f.outputs] # 2. 関数の出力の勾配を取得
+            gys = [output().grad for output in f.outputs] # 2. 関数の出力の勾配を取得
             gxs = f.backward(*gys) # 3. 関数のbackwardメソッドを呼ぶ
             if not isinstance(gxs, tuple): # タプルではない場合の追加対応
                 gxs = (gxs,)
@@ -103,7 +104,7 @@ class Function:
         for output in outputs:
             output.set_creator(self) # 出力変数に生みの親を覚えさせる
         self.inputs = inputs # 入力された変数を覚える
-        self.outputs = outputs # 出力も覚える
+        self.outputs = [weakref.ref(output) for output in outputs] # 出力も弱参照で覚える
         return outputs if len(outputs)>1 else outputs[0]
 
     def forward(self, x):
