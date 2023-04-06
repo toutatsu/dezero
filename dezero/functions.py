@@ -1,3 +1,18 @@
+import numpy as np
+
+class Sin(Function):
+
+    def forward(self, x):
+        y = np.sin(x)
+        return y
+
+    def backward(self, gy):
+        x = self.inputs[0].data
+        gx = gy * np.cos(x)
+        return gx
+
+
+
 class Exp(Function):
     # y = e^x
     def forward(self, x):
