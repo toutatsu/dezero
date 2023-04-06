@@ -2,9 +2,7 @@ import weakref
 import numpy as np
 import contextlib
 
-# =============================================================================
-# Config
-# =============================================================================
+
 class Config():
     enable_backprop = True
 
@@ -22,14 +20,9 @@ def no_grad():
     return using_config('enable_backprop', False)
 
 
-# =============================================================================
-# Variable / Function
-# =============================================================================
 class Variable:
-    __array_priprity__ = 200 # 演算子の優先度
     def __init__(self, data, name=None):
 
-        # np.ndarrayだけ扱う
         if data is not None:
             if not isinstance(data, np.ndarray):
                 raise TypeError(f'{type(data)} is not supported')
@@ -62,7 +55,7 @@ class Variable:
     def __repr__(self):
         if self.data is None:
             return 'variable(None)'
-        return f'variable({str(self.data)})'.replace('\n', '\n' + ' ' * 9) 
+        return f'variable({str(self.data)})'.replace('\n', '\n' + ' ' * 9)
 
     def set_creator(self, func):
         self.creator = func
@@ -73,23 +66,12 @@ class Variable:
 
     def backward(self, retain_grad=False):
 
-        # 逆伝播の最初の変数に勾配を設定
         if self.grad is None:
             self.grad = np.ones_like(self.data)
 
-        # recursion
-        # f = self.creator # 1. 関数を取得
-        # if f is not None:
-        #     x = f.input # 2. 関数の入力を取得
-        #     x.grad = f.backward(self.grad) # 3. 関数のbackwardメソッドを呼ぶ
-        #     x.backward() # 4. 自分より1つ前の変数のbackwardメソッドを呼ぶ (再帰)
-
-        # 関数リスト
         funcs = []
-        # funcsに同じ関数が追加されるのを防ぐ
         seen_set = set()
 
-        # 関数fをfuncsに追加してgeneration順に並べる
         def add_func(f):
             if f not in seen_set:
                 funcs.append(f)
@@ -99,42 +81,33 @@ class Variable:
         add_func(self.creator)
 
         while funcs:
-            f = funcs.pop() # 1. 関数を取得
+            f = funcs.pop()
 
-            # 1変数関数の逆伝播
-            # x, y = f.input, f.output # 2. 関数の入出力を取得
-            # x.grad = f.backward(y.grad) # 3. 関数のbackwardメソッドを呼ぶ
-
-            # if x.creator is not None:
-            #     funcs.append(x.creator) # 4. 1つ前の関数をリストに追加
-
-            # 多変数関数の逆伝播
-            gys = [output().grad for output in f.outputs] # 2. 関数の出力の勾配を取得
-            gxs = f.backward(*gys) # 3. 関数のbackwardメソッドを呼ぶ
-            if not isinstance(gxs, tuple): # タプルではない場合の追加対応
+            gys = [output().grad for output in f.outputs]
+            gxs = f.backward(*gys)
+            if not isinstance(gxs, tuple):
                 gxs = (gxs,)
 
-            for x, gx in zip(f.inputs, gxs): # 4. 関数の入力の勾配を設定
+            for x, gx in zip(f.inputs, gxs):
                 if x.grad is None:
                     x.grad = gx
                 else:
                     x.grad = x.grad + gx
 
-                if x.creator is not None: # 5. 前の関数をリストに追加
+                if x.creator is not None:
                     add_func(x.creator)
 
-                if not retain_grad: # 微分を伝えてきた変数の微分情報を削除
+                if not retain_grad:
                     for y in f.outputs:
                         y().grad = None
 
-# Variableインスタンスに変換
+
 def as_variable(obj):
     if isinstance(obj, Variable):
         return obj
     return Variable(obj)
 
 
-# ndarrayインスタンスに変換
 def as_array(x):
     if np.isscalar(x):
         return np.array(x)
@@ -142,20 +115,20 @@ def as_array(x):
 
 
 class Function:
-    def __call__(self, *inputs): # 可変長引数
-        inputs = [as_variable(x) for x in inputs] # Variableインスタンスに変換
-        xs = [x.data for x in inputs] # データを取り出す
-        ys = self.forward(*xs) # 実際の計算 可変長引数のアンパッキング
-        if not isinstance(ys, tuple): # タプルではない場合の追加対応
+    def __call__(self, *inputs):
+        inputs = [as_variable(x) for x in inputs] 
+        xs = [x.data for x in inputs]
+        ys = self.forward(*xs)
+        if not isinstance(ys, tuple):
             ys = (ys,)
         outputs = [Variable(as_array(y)) for y in ys]
 
-        if Config.enable_backprop: # 逆伝播が有効の場合  
-            self.generation = max([x.generation for x in inputs]) # 引数の中で最大の世代を自身に世代に設定
+        if Config.enable_backprop:
+            self.generation = max([x.generation for x in inputs])
             for output in outputs:
-                output.set_creator(self) # 出力変数に生みの親を覚えさせる
-            self.inputs = inputs # 入力された変数を覚える
-            self.outputs = [weakref.ref(output) for output in outputs] # 出力も弱参照で覚える
+                output.set_creator(self)
+            self.inputs = inputs
+            self.outputs = [weakref.ref(output) for output in outputs]
 
         return outputs if len(outputs)>1 else outputs[0]
 
@@ -166,10 +139,14 @@ class Function:
         raise NotImplementedError()
 
 
+    
+    def forward(self, x0, x1):
+        y = x0 + x1
+        return y
+    
+    def backward(self, gy):
+        return gy, gy
 
-# =============================================================================
-# 四則演算 / 演算子のオーバーロード
-# =============================================================================
 
 class Add(Function):
     
@@ -180,8 +157,9 @@ class Add(Function):
     def backward(self, gy):
         return gy, gy
 
+
 def add(x0, x1):
-    x1 = as_array(x1) # ndarrayインスタンスに変換
+    x1 = as_array(x1)
     return Add()(x0, x1)
 
 
@@ -227,14 +205,14 @@ def sub(x0, x1):
 
 def rsub(x0, x1):
     x1 = as_array(x1)
-    return Sub()(x1, x0) # x1, x0を入れ替え
+    return Sub()(x1, x0)
 
 
 class Div(Function):
 
     def forward(self, x0, x1):
         y = x0 / x1
-        return y 
+        return y
 
     def backward(self, gy):
         x0, x1 = self.inputs[0].data, self.inputs[1].data
@@ -248,13 +226,13 @@ def div(x0, x1):
 
 def rdiv(x0, x1):
     x1 = as_array(x1)
-    return Div()(x1, x0) # x1, x0を入れ替え
+    return Div()(x1, x0)
 
 
 class Pow(Function):
 
     def __init__(self, c):
-        self.c = c # 冪指数c 定数扱い
+        self.c = c
 
     def forward(self, x):
         y = x ** self.c
@@ -279,3 +257,32 @@ Variable.__rsub__ = rsub
 Variable.__truediv__ = div
 Variable.__rtruediv__ = rdiv
 Variable.__pow__ = pow
+
+# + *
+x = Variable(np.array(2.0))
+y = 3.0 * x + 1.0
+print(y)
+
+# neg
+x = Variable(np.array(2.0))
+y = -x # 負数を求める
+print(y)
+
+# -
+x = Variable(np.array(2.0))
+y1 = 2.0 - x
+y2 = x - 1.0
+print(y1)
+print(y2)
+
+# /
+x = Variable(np.array(2.0))
+y1 = 2.0 / x
+y2 = x / 3.0
+print(y1)
+print(y2)
+
+# **
+x = Variable(np.array(2.0))
+y = x ** 3
+print(y)
