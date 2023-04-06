@@ -1,5 +1,98 @@
 from dezero import Variable
 import numpy as np
+import os
+import subprocess
+
+# =============================================================================
+# Visualize for computational graph
+# =============================================================================
+
+
+def _dot_var(v, verbose=False):
+    """
+    v : Variable インスタンス
+    DOT言語のノード情報をもつ文字列を返す
+    """
+
+    name = '' if v.name is None else v.name
+
+    if verbose and v.data is not None:
+
+        if v.name is not None:
+            name += ': '
+        
+        name += str(v.shape) + ' ' + str(v.dtype)
+
+    return f'{id(v)} [label="{name}", color=orange, style=filled]\n'
+
+
+def _dot_func(f):
+    txt = f'{id(f)} [label="{f.__class__.__name__}", color=lightblue, style=filled, shape=box]\n'
+
+    for x in f.inputs:
+        txt += f"{id(x)} -> {id(f)}\n"
+    for y in f.outputs:
+        txt += f"{id(f)} -> {id(y())}\n"
+    
+    return txt
+
+
+def get_dot_graph(output, verbose=False):
+
+    txt = ''
+
+    # 以下 Variable.backwardと同様
+    funcs = []
+    seen_set = set()
+
+    def add_func(f):
+        if f not in seen_set:
+            funcs.append(f)
+            seen_set.add(f)
+            # funcs.sort(key=lambda x: x.generation) #ノードの順番は関係なし
+
+    add_func(output.creator)
+    txt += _dot_var(output, verbose) # 出力変数の情報
+
+    while funcs:
+        f = funcs.pop()
+        txt += _dot_func(f) # 関数の情報
+
+        for x in f.inputs:
+            txt += _dot_var(x, verbose) # 関数へ入力される変数の情報
+
+            if x.creator is not None:
+                add_func(x.creator)
+
+    return "digraph g {\n" + txt + "}"
+
+
+def plot_dot_graph(output, verbose=True, to_file='graph.png'):
+
+    dot_graph = get_dot_graph(output, verbose)
+
+    # dotデータをファイルに保存
+    tmp_dir = os.path.join(os.path.expanduser('~'), '.dezero')
+    # ~/.dezero ディレクトリを作成
+    if not os.path.exists(tmp_dir):
+        os.makedirs(tmp_dir)
+
+    graph_path = os.path.join(tmp_dir, 'tmp_graph.dot')
+
+    with open(graph_path, 'w') as f:
+        f.write(dot_graph)
+
+    # dotコマンドを実行
+    extension = os.path.splitext(to_file)[1][1:]
+    subprocess.run(f'dot {graph_path} -T {extension} -o {to_file}', shell=True)
+
+
+    # Jupyter Notebook用に画像を表示
+    try:
+        from IPython import display
+        return display.Image(filename=to_file)
+    except:
+        pass
 
 
 # =============================================================================
