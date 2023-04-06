@@ -26,7 +26,7 @@ def no_grad():
 # Variable / Function
 # =============================================================================
 class Variable:
-    def __init__(self, data):
+    def __init__(self, data, name=None):
 
         # np.ndarrayだけ扱う
         if data is not None:
@@ -34,14 +34,39 @@ class Variable:
                 raise TypeError(f'{type(data)} is not supported')
 
         self.data = data
+        self.name = name
         self.grad = None
         self.creator = None
         self.generation = 0
+    
+    @property
+    def shape(self):
+        return self.data.shape
+
+    @property
+    def ndim(self):
+        return self.data.ndim
+
+    @property
+    def size(self):
+        return self.data.size
+
+    @property
+    def dtype(self):
+        return self.data.dtype
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __repr__(self):
+        if self.data is None:
+            return 'variable(None)'
+        return f'variable({str(self.data)})'.replace('\n', '\n' + ' ' * 9) 
 
     def set_creator(self, func):
         self.creator = func
         self.generation = func.generation + 1
-    
+
     def clear_grad(self):
         self.grad = None
 
