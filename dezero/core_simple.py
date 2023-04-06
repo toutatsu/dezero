@@ -193,7 +193,7 @@ class Mul(Function):
     
     def backward(self, gy):
         x0, x1 = self.inputs[0].data, self.inputs[1].data
-        return x1 * gy, x0 * gy
+        return gy * x1, gy * x0
 
 def mul(x0, x1):
     x1 = as_array(x1)
@@ -238,8 +238,8 @@ class Div(Function):
 
     def backward(self, gy):
         x0, x1 = self.inputs[0].data, self.inputs[1].data
-        gx0 = 1 / x1 * gy
-        gx1 = (-x0 / x1 ** 2) * gy
+        gx0 = gy * 1 / x1
+        gx1 = gy * (-x0 / x1 ** 2)
         return gx0, gx1
 
 def div(x0, x1):
@@ -263,7 +263,7 @@ class Pow(Function):
     def backward(self, gy):
         x = self.inputs[0].data
         c = self.c
-        gx = c * x ** (c-1) * gy
+        gx = gy * c * x ** (c-1)
         return gx
 
 def pow(x, c):
