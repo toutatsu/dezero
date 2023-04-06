@@ -1,5 +1,25 @@
 import weakref
 import numpy as np
+import contextlib
+
+# =============================================================================
+# Config
+# =============================================================================
+class Config():
+    enable_backprop = True
+
+@contextlib.contextmanager
+def using_config(name, value):
+    old_value = getattr(Config, name)
+    setattr(Config, name, value)
+    try:
+        yield
+    finally:
+        setattr(Config, name, old_value)
+
+
+def no_grad():
+    return using_config('enable_backprop', False)
 
 
 # =============================================================================
@@ -25,7 +45,7 @@ class Variable:
     def clear_grad(self):
         self.grad = None
 
-    def backward(self):
+    def backward(self, retain_grad=False):
 
         # 逆伝播の最初の変数に勾配を設定
         if self.grad is None:
@@ -77,6 +97,9 @@ class Variable:
                 if x.creator is not None: # 5. 前の関数をリストに追加
                     add_func(x.creator)
 
+                if not retain_grad: # 微分を伝えてきた変数の微分情報を削除
+                    for y in f.outputs:
+                        y().grad = None
 
 # Variableインスタンスに変換
 def as_variable(obj):
@@ -100,11 +123,13 @@ class Function:
             ys = (ys,)
         outputs = [Variable(as_array(y)) for y in ys]
 
-        self.generation = max([x.generation for x in inputs]) # 引数の中で最大の世代を自身に世代に設定
-        for output in outputs:
-            output.set_creator(self) # 出力変数に生みの親を覚えさせる
-        self.inputs = inputs # 入力された変数を覚える
-        self.outputs = [weakref.ref(output) for output in outputs] # 出力も弱参照で覚える
+        if Config.enable_backprop: # 逆伝播が有効の場合  
+            self.generation = max([x.generation for x in inputs]) # 引数の中で最大の世代を自身に世代に設定
+            for output in outputs:
+                output.set_creator(self) # 出力変数に生みの親を覚えさせる
+            self.inputs = inputs # 入力された変数を覚える
+            self.outputs = [weakref.ref(output) for output in outputs] # 出力も弱参照で覚える
+
         return outputs if len(outputs)>1 else outputs[0]
 
     def forward(self, x):
