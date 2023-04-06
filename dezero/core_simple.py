@@ -26,6 +26,7 @@ def no_grad():
 # Variable / Function
 # =============================================================================
 class Variable:
+    __array_priprity__ = 200 # 演算子の優先度
     def __init__(self, data, name=None):
 
         # np.ndarrayだけ扱う
@@ -142,6 +143,7 @@ def as_array(x):
 
 class Function:
     def __call__(self, *inputs): # 可変長引数
+        inputs = [as_variable(x) for x in inputs] # Variableインスタンスに変換
         xs = [x.data for x in inputs] # データを取り出す
         ys = self.forward(*xs) # 実際の計算 可変長引数のアンパッキング
         if not isinstance(ys, tuple): # タプルではない場合の追加対応
@@ -179,6 +181,7 @@ class Add(Function):
         return gy, gy
 
 def add(x0, x1):
+    x1 = as_array(x1) # ndarrayインスタンスに変換
     return Add()(x0, x1)
 
 
@@ -193,8 +196,11 @@ class Mul(Function):
         return x1 * gy, x0 * gy
 
 def mul(x0, x1):
+    x1 = as_array(x1)
     return Mul()(x0, x1)
 
 
 Variable.__add__ = add
-Variable.__mul__ = mul
+Variable.__radd__ = add
+Variable.__add__ = add
+Variable.__rmul__ = mul
