@@ -61,7 +61,7 @@ class Variable:
         self.creator = func
         self.generation = func.generation + 1
 
-    def clear_grad(self):
+    def cleargrad(self):
         self.grad = None
 
     def backward(self, retain_grad=False):

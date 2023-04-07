@@ -15,7 +15,7 @@ class Variable:
     def set_creator(self, func):
         self.creator = func
 
-    def clear_grad(self):
+    def cleargrad(self):
         self.grad = None
 
     def backward(self):
