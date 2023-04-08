@@ -71,11 +71,11 @@ class Variable:
     def cleargrad(self):
         self.grad = None
 
-    def backward(self, retain_grad=False):
+    def backward(self, retain_grad=False, create_graph=False):
 
         # 逆伝播の最初の変数に勾配を設定
         if self.grad is None:
-            self.grad = np.ones_like(self.data)
+            self.grad = Variable(np.ones_like(self.data)) # 高階微分を求める計算グラフを構築するためVariable
 
         # recursion
         # f = self.creator # 1. 関数を取得
@@ -110,22 +110,25 @@ class Variable:
 
             # 多変数関数の逆伝播
             gys = [output().grad for output in f.outputs] # 2. 関数の出力の勾配を取得
-            gxs = f.backward(*gys) # 3. 関数のbackwardメソッドを呼ぶ
-            if not isinstance(gxs, tuple): # タプルではない場合の追加対応
-                gxs = (gxs,)
 
-            for x, gx in zip(f.inputs, gxs): # 4. 関数の入力の勾配を設定
-                if x.grad is None:
-                    x.grad = gx
-                else:
-                    x.grad = x.grad + gx
+            with using_config('enable_backprop', create_graph): # create_graph=Trueで逆伝播時の計算に対する計算グラフも作成
 
-                if x.creator is not None: # 5. 前の関数をリストに追加
-                    add_func(x.creator)
+                gxs = f.backward(*gys) # 3. 関数のbackwardメソッドを呼ぶ
+                if not isinstance(gxs, tuple): # タプルではない場合の追加対応
+                    gxs = (gxs,)
 
-                if not retain_grad: # 微分を伝えてきた変数の微分情報を削除
-                    for y in f.outputs:
-                        y().grad = None
+                for x, gx in zip(f.inputs, gxs): # 4. 関数の入力の勾配を設定
+                    if x.grad is None:
+                        x.grad = gx
+                    else:
+                        x.grad = x.grad + gx
+
+                    if x.creator is not None: # 5. 前の関数をリストに追加
+                        add_func(x.creator)
+
+                    if not retain_grad: # 微分を伝えてきた変数の微分情報を削除
+                        for y in f.outputs:
+                            y().grad = None
 
 # Variableインスタンスに変換
 def as_variable(obj):
@@ -192,7 +195,7 @@ class Mul(Function):
         return y
     
     def backward(self, gy):
-        x0, x1 = self.inputs[0].data, self.inputs[1].data
+        x0, x1 = self.inputs
         return gy * x1, gy * x0
 
 def mul(x0, x1):
@@ -237,7 +240,7 @@ class Div(Function):
         return y 
 
     def backward(self, gy):
-        x0, x1 = self.inputs[0].data, self.inputs[1].data
+        x0, x1 = self.inputs
         gx0 = gy * 1 / x1
         gx1 = gy * (-x0 / x1 ** 2)
         return gx0, gx1
@@ -261,7 +264,7 @@ class Pow(Function):
         return y
 
     def backward(self, gy):
-        x = self.inputs[0].data
+        x, = self.inputs
         c = self.c
         gx = gy * c * x ** (c-1)
         return gx
