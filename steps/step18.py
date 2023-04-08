@@ -92,11 +92,12 @@ class Function:
             ys = (ys,)
         outputs = [Variable(as_array(y)) for y in ys]
 
-        self.generation = max([x.generation for x in inputs])
-        for output in outputs:
-            output.set_creator(self) # 出力変数に生みの親を覚えさせる
-        self.inputs = inputs # 入力された変数を覚える
-        self.outputs = [weakref.ref(output) for output in outputs] # 出力も覚える
+        if Config.enable_backprop: # 逆伝播が有効の場合 
+            self.generation = max([x.generation for x in inputs])
+            for output in outputs:
+                output.set_creator(self) # 出力変数に生みの親を覚えさせる
+            self.inputs = inputs # 入力された変数を覚える
+            self.outputs = [weakref.ref(output) for output in outputs] # 出力も覚える
         return outputs if len(outputs)>1 else outputs[0]
 
     def forward(self, x):
