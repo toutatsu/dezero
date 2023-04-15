@@ -126,9 +126,9 @@ class Variable:
                     if x.creator is not None: # 5. 前の関数をリストに追加
                         add_func(x.creator)
 
-                    if not retain_grad: # 微分を伝えてきた変数の微分情報を削除
-                        for y in f.outputs:
-                            y().grad = None
+            if not retain_grad: # 微分を伝えてきた変数の微分情報を削除
+                for y in f.outputs:
+                    y().grad = None
 
 # Variableインスタンスに変換
 def as_variable(obj):
