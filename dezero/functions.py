@@ -110,6 +110,9 @@ def transpose(x, axes=None):
     return Transpose(axes)(x)
 
 
+# =============================================================================
+# sum / sum_to / broadcast_to  / matmul 
+# =============================================================================
 
 class Sum(Function):
 
@@ -169,3 +172,20 @@ def broadcast_to(x, shape):
     if x.shape == shape:
         return as_variable(x)
     return BroadcastTo(shape)(x)
+
+
+class Matmul(Function):
+
+    def forward(self, X0, X1):
+        Y = X0 @ X1
+        return Y
+    
+    def backward(self, gy):
+        X0, X1 = self.inputs
+        gX0 = gy @ X1.T
+        gX1 = X0.T @ gy
+        return gX0, gX1
+
+def matmul(X0, X1):
+    return Matmul()(X0, X1)
+       

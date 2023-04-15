@@ -20,4 +20,6 @@ else:
     from dezero.core import as_variable
     from dezero.core import setup_variable 
 
+    from dezero.functions import matmul
+
 setup_variable()
