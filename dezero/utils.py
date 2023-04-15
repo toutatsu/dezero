@@ -106,7 +106,7 @@ def sum_to(x, shape):
     lead = x.ndim - len(shape)
     lead_axis = tuple(range(lead))
 
-    y = x.sum(lead_axis + tuple([i + lead for i, sx in enumerate(shape) if sx == 1]))
+    y = x.sum(lead_axis + tuple([i + lead for i, sx in enumerate(shape) if sx == 1]), keepdims = True)
 
     if lead > 0:
         y = y.squeeze(lead_axis)
