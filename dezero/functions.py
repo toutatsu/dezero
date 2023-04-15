@@ -188,4 +188,35 @@ class Matmul(Function):
 
 def matmul(X0, X1):
     return Matmul()(X0, X1)
-       
+
+
+
+# =============================================================================
+# loss function: mean_squared_error
+# =============================================================================
+
+def mean_squared_error_simple(x0, x1):
+    x0, x1 = as_variable(x0), as_variable(x1)
+    diff = x0 - x1
+    y = sum(diff ** 2) / len(diff)
+    return y
+
+class MeanSquaredError(Function):
+
+    def forward(self, x0, x1):
+        diff = x0 - x1
+        y = (diff ** 2).sum() / len(diff)
+        return y
+
+    # y = (x0 - x1)^2 / len(diff)
+    # dy/dx0 =   2 (x0 - x1) / len(diff)
+    # dy/dx1 = - 2 (x0 - x1) / len(diff)
+    def backward(self, gy):
+        x0, x1 = self.inputs
+        diff = x0 - x1
+        gx0 = gy * diff * (2. / len(diff))
+        gx1 = -gx0
+        return gx0, gx1
+
+def mean_squared_error(x0, x1):
+    return MeanSquaredError()(x0, x1)
