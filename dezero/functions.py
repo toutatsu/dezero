@@ -1,5 +1,7 @@
 import numpy as np
 from dezero.core import Function
+from dezero.core import as_variable
+from dezero import utils
 
 
 class Sin(Function):
@@ -61,3 +63,48 @@ class Exp(Function):
 
 def exp(x):
     return Exp()(x)
+
+
+# =============================================================================
+# Tensor operations: reshape / transpose 
+# =============================================================================
+
+class Reshape(Function):
+
+    def __init__(self, shape):
+        self.shape = shape
+
+    def forward(self, x):
+        self.x_shape = x.shape
+        y = x.reshape(self.shape)
+        return y
+
+    def backward(self, gy):
+        return reshape(gy, self.x_shape)
+
+def reshape(x, shape):
+    if x.shape == shape:
+        return as_variable(x)
+    return Reshape(shape)(x)
+
+
+class Transpose(Function):
+
+    def __init__(self, axes=None):
+        self.axes = axes
+
+    def forward(self, x):
+        y = x.transpose(self.axes) # numpyのtranspose
+        return y
+
+    def backward(self, gy):
+        if self.axes == None:
+            return transpose(gy)
+
+        # axes_len = len(self.axes)
+        # inv_axes = tuple(np.argsort([ax % axes_len for ax in self.axes]))
+        inv_axes = tuple(np.argsort(self.axes)) # TODO: test axes_lenで割らない場合
+        return transpose(gy, inv_axes)
+
+def transpose(x, axes=None):
+    return Transpose(axes)(x)
