@@ -52,10 +52,6 @@ plot_dot_graph(
 lr = 0.2
 iters = 10000
 y_pred_history = []
-W1_history = []
-b1_history = []
-W2_history = []
-b2_history = []
 loss_history = []
 
 
@@ -77,10 +73,6 @@ for i in range(iters):
         print(loss)
 
     y_pred_history.append(y_pred.data.copy())
-    W1_history.append(W1.data.copy())
-    b1_history.append(b1.data.copy())
-    W2_history.append(W2.data.copy())
-    b2_history.append(b2.data.copy())
     loss_history.append(loss.data.copy())
 
 
@@ -105,6 +97,5 @@ ani = animation.FuncAnimation(
     frames=100,
     interval=100,
 )
-print(W1_history[0].shape)
 
 ani.save('step43_neuralnetwork_sine.gif')
