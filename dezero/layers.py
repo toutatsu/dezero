@@ -12,7 +12,7 @@ class Layer:
 
 
     def __setattr__(self, name, value):
-        if isinstance(value, Parameter): # Parameterのインスタンス変数のみ__paramsに追加
+        if isinstance(value, (Parameter, Layer)): # Parameterのインスタンス変数のみ__paramsに追加
             self.__params.add(name)
         super().__setattr__(name, value)
 
@@ -38,8 +38,12 @@ class Layer:
 
     def params(self):
         for name in self.__params:
-            yield self.__dict__[name]
-        pass
+            obj = self.__dict__[name]
+
+            if isinstance(obj, Layer): # Layerインスタンスからパラメータを取り出す
+                yield from obj.params()
+            else:
+                yield obj
 
 
     def cleargrads(self):
