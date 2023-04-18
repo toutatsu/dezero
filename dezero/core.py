@@ -148,6 +148,11 @@ class Variable:
     def T(self):
         return dezero.functions.transpose(self)
 
+
+class Parameter(Variable):
+    pass
+
+
 # Variableインスタンスに変換
 def as_variable(obj):
     if isinstance(obj, Variable):
