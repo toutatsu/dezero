@@ -4,6 +4,9 @@ from dezero.core import as_variable
 from dezero import utils
 
 
+# =============================================================================
+# Basic functions: sin / cos / tanh / exp
+# =============================================================================
 class Sin(Function):
 
     def forward(self, x):
