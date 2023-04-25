@@ -24,6 +24,7 @@ else:
     from dezero.layers import Layer
     from dezero.models import Model
     from dezero.datasets import Dataset
+    from dezero.dataloaders import Dataloader
 
     from dezero.functions import matmul
 
