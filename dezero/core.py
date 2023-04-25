@@ -3,6 +3,7 @@ import numpy as np
 import contextlib
 import dezero
 
+
 # =============================================================================
 # Config
 # =============================================================================
@@ -26,13 +27,21 @@ def no_grad():
 # =============================================================================
 # Variable / Function
 # =============================================================================
+
+try:
+    import cupy
+    array_types = (np.ndarray, cupy.ndarray)
+except ImportError:
+    array_types = (np.ndarray)
+
+
 class Variable:
     __array_priprity__ = 200 # 演算子の優先度
     def __init__(self, data, name=None):
 
-        # np.ndarrayだけ扱う
+        # array_typesだけ扱う
         if data is not None:
-            if not isinstance(data, np.ndarray):
+            if not isinstance(data, array_types):
                 raise TypeError(f'{type(data)} is not supported')
 
         self.data = data
@@ -76,7 +85,8 @@ class Variable:
 
         # 逆伝播の最初の変数に勾配を設定
         if self.grad is None:
-            self.grad = Variable(np.ones_like(self.data)) # 高階微分を求める計算グラフを構築するためVariable
+            xp = dezero.cuda.get_array_module(self.data)
+            self.grad = Variable(xp.ones_like(self.data)) # 高階微分を求める計算グラフを構築するためVariable
 
         # recursion
         # f = self.creator # 1. 関数を取得
@@ -150,6 +160,14 @@ class Variable:
 
     def sum(self, axis=None, keepdims=False):
         return dezero.functions.sum(self, axis, keepdims)
+    
+    def to_cpu(self):
+        if self.data is not None:
+            self.data = dezero.cuda.as_numpy(self.data)
+
+    def to_gpu(self):
+        if self.data is not None:
+            self.data = dezero.cuda.as_cupy(self.data)
 
 
 class Parameter(Variable):
@@ -164,9 +182,9 @@ def as_variable(obj):
 
 
 # ndarrayインスタンスに変換
-def as_array(x):
+def as_array(x, array_module=np):
     if np.isscalar(x):
-        return np.array(x)
+        return array_module.array(x)
     return x
 
 
@@ -216,7 +234,7 @@ class Add(Function):
         return gx0, gx1
 
 def add(x0, x1):
-    x1 = as_array(x1) # ndarrayインスタンスに変換
+    x1 = as_array(x1, dezero.cuda.get_array_module(x0.data)) # ndarrayインスタンスに変換
     return Add()(x0, x1)
 
 
@@ -236,7 +254,7 @@ class Mul(Function):
         return gx0, gx1
 
 def mul(x0, x1):
-    x1 = as_array(x1)
+    x1 = as_array(x1, dezero.cuda.get_array_module(x0.data))
     return Mul()(x0, x1)
 
 
@@ -268,11 +286,11 @@ class Sub(Function):
         return gx0, gx1
 
 def sub(x0, x1):
-    x1 = as_array(x1)
+    x1 = as_array(x1, dezero.cuda.get_array_module(x0.data))
     return Sub()(x0, x1)
 
 def rsub(x0, x1):
-    x1 = as_array(x1)
+    x1 = as_array(x1, dezero.cuda.get_array_module(x0.data))
     return Sub()(x1, x0) # x1, x0を入れ替え
 
 
@@ -292,11 +310,11 @@ class Div(Function):
         return gx0, gx1
 
 def div(x0, x1):
-    x1 = as_array(x1)
+    x1 = as_array(x1, dezero.cuda.get_array_module(x0.data))
     return Div()(x0, x1)
 
 def rdiv(x0, x1):
-    x1 = as_array(x1)
+    x1 = as_array(x1, dezero.cuda.get_array_module(x0.data))
     return Div()(x1, x0) # x1, x0を入れ替え
 
 

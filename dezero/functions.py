@@ -1,6 +1,7 @@
 import numpy as np
 from dezero import utils
 from dezero.core import Function, Variable, as_variable, as_array
+from dezero import cuda
 
 # =============================================================================
 # Basic functions: sin / cos / tanh / exp / log
@@ -8,7 +9,8 @@ from dezero.core import Function, Variable, as_variable, as_array
 class Sin(Function):
 
     def forward(self, x):
-        y = np.sin(x)
+        xp = cuda.get_array_module(x)
+        y = xp.sin(x)
         return y
 
     def backward(self, gy):
@@ -23,7 +25,8 @@ def sin(x):
 class Cos(Function):
 
     def forward(self, x):
-        y = np.cos(x)
+        xp = cuda.get_array_module(x)
+        y = xp.cos(x)
         return y
 
     def backward(self, gy):
@@ -38,7 +41,8 @@ def cos(x):
 class Tanh(Function):
 
     def forward(self, x):
-        y = np.tanh(x)
+        xp = cuda.get_array_module(x)
+        y = xp.tanh(x)
         return y
 
     def backward(self, gy):
@@ -53,13 +57,14 @@ def tanh(x):
 class Exp(Function):
     # y = e^x
     def forward(self, x):
-        y = np.exp(x)
+        xp = cuda.get_array_module(x)
+        y = xp.exp(x)
         return y
 
     # dy/dx = e^x
     def backward(self, gy):
-        x = self.input.data
-        gx = np.exp(x) * gy
+        y = self.outputs[0]() 
+        gx = gy * y
         return gx
 
 def exp(x):
@@ -69,7 +74,8 @@ def exp(x):
 class Log(Function):
 
     def forward(self, x):
-        y = np.log(x)
+        xp = cuda.get_array_module(x)
+        y = xp.log(x)
         return y
 
     def backward(self, gy):
@@ -151,8 +157,13 @@ class GetItemGrad(Function):
         self.in_shape = in_shape
 
     def forward(self, gy):
-        gx = np.zeros(self.in_shape, dtype=gy.dtype)
-        np.add.at(gx, self.slices, gy) # gxに対してslicesで指定された場所にgyを加算
+        xp = cuda.get_array_module(gy)
+        gx = xp.zeros(self.in_shape, dtype=gy.dtype)
+
+        if xp is np:
+            xp.add.at(gx, self.slices, gy) # gxに対してslicesで指定された場所にgyを加算
+        else:
+            xp.scatter_add(gx, self.slices, g)
         return gx
 
     def backward(self, ggx):
@@ -210,7 +221,8 @@ class BroadcastTo(Function):
 
     def forward(self, x):
         self.x_shape = x.shape
-        y = np.broadcast_to(x, self.shape)
+        xp = cuda.get_array_module(x)
+        y = xp.broadcast_to(x, self.shape)
         return y
 
     def backward(self, gy):
@@ -280,8 +292,9 @@ def sigmoid_simple(x):
 class Sigmoid(Function):
 
     def forward(self, x):
+        xp = cuda.get_array_module(x)
         # y = 1 / (1+ exp(-x))
-        y = np.tanh(x * 0.5) * 0.5 + 0.5
+        y = xp.tanh(x * 0.5) * 0.5 + 0.5
         return y
     
     def backward(self, gy):
@@ -296,7 +309,8 @@ def sigmoid(x):
 class ReLU(Function):
 
     def forward(self, x):
-        y = np.maximum(x, 0)
+        xp = cuda.get_array_module(x)
+        y = xp.maximum(x, 0)
         return y
     
     def backward(self, gy):
@@ -322,8 +336,9 @@ class Softmax(Function):
         self.axis=axis
 
     def forward(self, x):
+        xp = cuda.get_array_module(x)
         y = x - x.max(axis=self.axis, keepdims=True) # オーバーフロー対策
-        y = np.exp(y)
+        y = xp.exp(y)
         y /= y.sum(axis=self.axis, keepdims=True)
         return y
     # TODO 逆伝播の式 導出
@@ -399,7 +414,8 @@ class SoftmaxCrossEntropy(Function):
         y = softmax(x)
 
         #one-hotベクトルへ
-        t_onehot = np.eye(CLS_NUM, dtype=t.dtype)[t.data]
+        xp = cuda.get_array_module(x)
+        t_onehot = xp.eye(CLS_NUM, dtype=t.dtype)[t.data]
         y = (y - t_onehot) * gy
         return y
 
@@ -429,7 +445,8 @@ class Clip(Function):
         self.x_max = x_max
 
     def forward(self, x):
-        y = np.clip(x, self.x_min, self.x_max)
+        xp = cuda.get_array_module(x)
+        y = xp.clip(x, self.x_min, self.x_max)
         return y
 
     def backward(self, gy):
