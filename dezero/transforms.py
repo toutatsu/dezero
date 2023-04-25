@@ -40,6 +40,12 @@ class Normalize():
         return (array - mean) / std
 
 
+class Flatten():
+
+    def __call__(self, array):
+        return array.flatten()
+
+
 class AsType():
 
     def __init__(self, dtype=np.float32):
@@ -47,3 +53,6 @@ class AsType():
 
     def __call__(self, array):
         return array.astype(self.dtype)
+
+
+ToFloat = AsType
