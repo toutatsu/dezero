@@ -23,6 +23,7 @@ else:
     from dezero.core import Config
     from dezero.layers import Layer
     from dezero.models import Model
+    from dezero.datasets import Dataset
 
     from dezero.functions import matmul
 
@@ -31,6 +32,7 @@ else:
     import dezero.functions
     import dezero.layers
     import dezero.utils
+    import dezero.transforms
 
 
 setup_variable()
