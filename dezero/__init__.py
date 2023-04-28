@@ -30,10 +30,12 @@ else:
     from dezero.functions import matmul
 
     import dezero.datasets
+    import dezero.dataloaders
     import dezero.optimizers
     import dezero.functions
     import dezero.layers
     import dezero.utils
+    import dezero.cuda
     import dezero.transforms
 
 
