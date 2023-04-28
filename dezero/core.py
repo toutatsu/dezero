@@ -83,6 +83,9 @@ class Variable:
     def set_creator(self, func):
         self.creator = func
         self.generation = func.generation + 1
+    
+    def unchain(self):
+        self.creator = None
 
     def cleargrad(self):
         self.grad = None
@@ -146,7 +149,17 @@ class Variable:
             if not retain_grad: # 微分を伝えてきた変数の微分情報を削除
                 for y in f.outputs:
                     y().grad = None
-    
+
+    def unchain_backward(self):
+        if self.creator is not None:
+            funcs = [self.creator]
+            while funcs:
+                f = funcs.pop()
+                for x in f.inputs:
+                    if x.creator is not None:
+                        funcs.append(x.creator)
+                        x.unchain()
+
     def reshape(self, *shape):
         if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
             shape = shape[0]
