@@ -26,6 +26,7 @@ else:
     from dezero.models import Model
     from dezero.datasets import Dataset
     from dezero.dataloaders import Dataloader
+    from dezero.dataloaders import SeqDataLoader
 
     from dezero.functions import matmul
 
