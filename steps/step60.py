@@ -52,8 +52,12 @@ for epoch in range(max_epoch):
 
         # Truncated BPTT
         if count % bptt_length == 0 or count == seqlen:
-            if count == 1:
+
+            # 計算グラフの可視化
+            if epoch == 0 and count == bptt_length:
+                print("plot computational graph")
                 plot_dot_graph(loss, to_file='step60_LSTM.png')
+
             model.cleargrads()
             loss.backward()
             loss.unchain_backward()
