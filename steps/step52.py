@@ -32,6 +32,7 @@ optimizer = optimizers.Adam().setup(model)
 # GPU mode
 if dezero.cuda.gpu_enable:
     train_loader.to_gpu()
+    test_loader.to_gpu()
     model.to_gpu()
     print('gpu mode')
 else:
