@@ -163,7 +163,7 @@ class GetItemGrad(Function):
         if xp is np:
             xp.add.at(gx, self.slices, gy) # gxに対してslicesで指定された場所にgyを加算
         else:
-            xp.scatter_add(gx, self.slices, g)
+            xp._cupyx.scatter_add(gx, self.slices, gy)
         return gx
 
     def backward(self, ggx):
